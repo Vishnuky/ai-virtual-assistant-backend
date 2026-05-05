@@ -26,13 +26,14 @@ export const signUp = async (req, res) => {
 
     const token = await genToken(user._id)
 
-    // ✅ CORRECT COOKIE
+    // ✅ FIXED COOKIE (WITH DOMAIN)
     res.cookie("token", token, {
       httpOnly: true,
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-      sameSite: "none",
       secure: true,
-      path: "/"
+      sameSite: "none",
+      domain: ".onrender.com",   // 🔥 IMPORTANT FIX
+      path: "/",
+      maxAge: 7 * 24 * 60 * 60 * 1000
     })
 
     return res.status(201).json(user)
@@ -43,7 +44,7 @@ export const signUp = async (req, res) => {
 }
 
 
-// ✅ LOGIN (FIXED)
+// ✅ LOGIN
 export const Login = async (req, res) => {
   try {
     const { email, password } = req.body
@@ -60,13 +61,14 @@ export const Login = async (req, res) => {
 
     const token = await genToken(user._id)
 
-    // 🔥 FIXED COOKIE (same as signup)
+    // ✅ SAME COOKIE CONFIG (IMPORTANT)
     res.cookie("token", token, {
       httpOnly: true,
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-      sameSite: "none",
       secure: true,
-      path: "/"
+      sameSite: "none",
+      domain: ".onrender.com",   // 🔥 IMPORTANT FIX
+      path: "/",
+      maxAge: 7 * 24 * 60 * 60 * 1000
     })
 
     return res.status(200).json(user)
@@ -77,13 +79,14 @@ export const Login = async (req, res) => {
 }
 
 
-// ✅ LOGOUT (slightly improved)
+// ✅ LOGOUT
 export const logOut = async (req, res) => {
   try {
     res.clearCookie("token", {
       httpOnly: true,
-      sameSite: "none",
       secure: true,
+      sameSite: "none",
+      domain: ".onrender.com",   // 🔥 MUST MATCH
       path: "/"
     })
 
