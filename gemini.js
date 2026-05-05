@@ -2,7 +2,8 @@ import axios from "axios"
 
 const geminiResponse = async (command, assistantName, userName) => {
   try {
-    const apiUrl = process.env.GEMINI_API_URL
+    const apiKey = process.env.GEMINI_API_KEY  // ✅ use key, not URL
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`
 
     const prompt = `You are a virtual assistant named ${assistantName} created by ${userName}. 
 You are not Google. You will now behave like a voice-enabled assistant.
@@ -46,20 +47,15 @@ now your userInput: ${command}`
       }]
     })
 
-    // ✅ Extract raw text from Gemini response
     let rawText = result.data.candidates[0].content.parts[0].text
-
-    // ✅ Strip markdown code fences if Gemini wraps response in ```json ... ```
     rawText = rawText.replace(/```json/g, '').replace(/```/g, '').trim()
 
-    // ✅ Parse and return as JSON object
     const parsed = JSON.parse(rawText)
     console.log("Gemini Response:", parsed)
     return parsed
 
   } catch (error) {
-    console.log("Gemini API error:", error)
-    // ✅ Return a safe fallback so app doesn't crash
+    console.log("Gemini API error:", error.response?.data?.error?.message || error.message)
     return {
       type: "general",
       userInput: command,

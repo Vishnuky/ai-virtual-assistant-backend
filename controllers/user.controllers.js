@@ -44,13 +44,19 @@ export const askToAssistant = async (req, res) => {
     const { command } = req.body
     const user = await User.findById(req.userId)
 
-    // ✅ strip assistant name from command (handles both voice and text input)
-    const cleanCommand = command
-      .replace(new RegExp(user.assistantName, 'gi'), '')
-      .trim()
+    console.log('Original command:', command)
+    console.log('Assistant name:', user.assistantName)
+
+    // ✅ Only strip assistant name if it's meaningful (more than 2 chars)
+    const cleanCommand =
+      user.assistantName && user.assistantName.length > 2
+        ? command.replace(new RegExp(user.assistantName, 'gi'), '').trim()
+        : command.trim()
+
+    console.log('Clean command:', cleanCommand)
 
     user.history.push(command)
-    await user.save() // ✅ await added
+    await user.save()
 
     const result = await geminiResponse(
       cleanCommand,
@@ -109,7 +115,7 @@ export const askToAssistant = async (req, res) => {
           .json({ response: "I didn't understand that command." })
     }
   } catch (error) {
-    console.log('askToAssistant error:', error.message) // ✅ log actual error
+    console.log('askToAssistant error:', error.message)
     return res.status(500).json({ response: 'ask assistant error' })
   }
 }
