@@ -3,17 +3,27 @@ import jwt from "jsonwebtoken"
 const verifyToken = (req, res, next) => {
   try {
     console.log('JWT_SECRET exists:', !!process.env.JWT_SECRET)
-    const token = req.cookies.token
-    console.log('Token from cookie:', !!token)
+
+    const token = req.cookies?.token
+    console.log('Token from cookie:', token)
+
     if (!token) {
-      return res.status(401).json({ message: "unauthorized" })
+      return res.status(401).json({ message: "Unauthorized: No token" })
     }
+
     const decoded = jwt.verify(token, process.env.JWT_SECRET)
-    req.userId = decoded.userId
+
+    // ✅ FIXED: match payload from signup
+    req.userId = decoded.id
+
     next()
+
   } catch (error) {
     console.log('verifyToken error:', error.message)
-    return res.status(500).json({ message: "token error" })
+
+    return res.status(401).json({
+      message: "Unauthorized: Invalid token"
+    })
   }
 }
 
