@@ -1,30 +1,28 @@
 import jwt from "jsonwebtoken"
 
-const verifyToken = (req, res, next) => {
+const protect = (req, res, next) => {
   try {
-    console.log('JWT_SECRET exists:', !!process.env.JWT_SECRET)
+    const authHeader = req.headers.authorization
 
-    const token = req.cookies?.token
-    console.log('Token from cookie:', token)
-
-    if (!token) {
-      return res.status(401).json({ message: "Unauthorized: No token" })
+    // Check header
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return res.status(401).json({ message: "No token, unauthorized" })
     }
 
+    const token = authHeader.split(" ")[1]
+
+    // Verify token
     const decoded = jwt.verify(token, process.env.JWT_SECRET)
 
-    // ✅ FIXED: match payload from signup
-    req.userId = decoded.id
+    // Attach user (IMPORTANT: match payload)
+    req.user = decoded   // {_id: ...}
 
     next()
 
-  } catch (error) {
-    console.log('verifyToken error:', error.message)
-
-    return res.status(401).json({
-      message: "Unauthorized: Invalid token"
-    })
+  } catch (err) {
+    console.error("JWT error:", err.message)
+    return res.status(401).json({ message: "Token invalid or expired" })
   }
 }
 
-export default verifyToken
+export default protect
