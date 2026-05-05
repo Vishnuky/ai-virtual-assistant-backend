@@ -1,67 +1,79 @@
-import axios from "axios"
+import OpenAI from "openai";
+
+const client = new OpenAI({
+  apiKey: process.env.GROQ_API_KEY,
+  baseURL: "https://api.groq.com/openai/v1",
+});
 
 const geminiResponse = async (command, assistantName, userName) => {
   try {
-    const apiKey = process.env.GEMINI_API_KEY  // ✅ use key, not URL
-    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`
-
     const prompt = `You are a virtual assistant named ${assistantName} created by ${userName}. 
-You are not Google. You will now behave like a voice-enabled assistant.
+You are not Google. You behave like a voice-enabled assistant.
 
-Your task is to understand the user's natural language input and respond with a JSON object like this:
+STRICT INSTRUCTION:
+- ONLY return a valid JSON object
+- NO markdown
+- NO explanation
+- NO extra text
 
+JSON format:
 {
   "type": "general" | "google-search" | "youtube-search" | "youtube-play" | "get-time" | "get-date" | "get-day" | "get-month" | "calculator-open" | "instagram-open" | "facebook-open" | "weather-show",
-  "userInput": "<original user input> (only remove assistant name if exists, and if user wants to search on google or youtube then only put the search text here)",
-  "response": "<a short spoken response to read out loud to the user>"
+  "userInput": "<processed input>",
+  "response": "<short spoken reply>"
 }
 
-Instructions:
-- "type": determine the intent of the user.
-- "userInput": original sentence the user spoke.
-- "response": A short voice-friendly reply, e.g., "Sure, playing it now", "Here's what I found", "Today is Tuesday", etc.
+Rules:
+- Keep response short and voice-friendly
+- If asked who created you → say ${userName}
+- If unsure → use "general"
 
-Type meanings:
-- "general": if it's a factual or informational question. aur agar koi aisa question puchta hai jiska answer tume pata hai usko bhi general ki category me rakho bas short answer dena
-- "google-search": if user wants to search something on Google.
-- "youtube-search": if user wants to search something on YouTube.
-- "youtube-play": if user wants to directly play a video or song.
-- "calculator-open": if user wants to open a calculator.
-- "instagram-open": if user wants to open instagram.
-- "facebook-open": if user wants to open facebook.
-- "weather-show": if user wants to know weather.
-- "get-time": if user asks for current time.
-- "get-date": if user asks for today's date.
-- "get-day": if user asks what day it is.
-- "get-month": if user asks for the current month.
+User input: ${command}`;
 
-Important:
-- Use ${userName} if someone asks who created you.
-- ONLY respond with the raw JSON object, no markdown, no code blocks, no extra text.
+    const result = await client.responses.create({
+      model: "openai/gpt-oss-20b",
+      input: prompt,
+    });
 
-now your userInput: ${command}`
+    let rawText = result.output_text?.trim() || "";
 
-    const result = await axios.post(apiUrl, {
-      contents: [{
-        parts: [{ text: prompt }]
-      }]
-    })
+    // 🧹 Remove unwanted formatting if model adds it
+    rawText = rawText
+      .replace(/```json/g, "")
+      .replace(/```/g, "")
+      .trim();
 
-    let rawText = result.data.candidates[0].content.parts[0].text
-    rawText = rawText.replace(/```json/g, '').replace(/```/g, '').trim()
+    let parsed;
 
-    const parsed = JSON.parse(rawText)
-    console.log("Gemini Response:", parsed)
-    return parsed
+    try {
+      parsed = JSON.parse(rawText);
+    } catch (err) {
+      console.warn("⚠ JSON parse failed. Raw output:", rawText);
+
+      // 🛟 Fallback (prevents crash)
+      parsed = {
+        type: "general",
+        userInput: command,
+        response:
+          rawText.slice(0, 120) || "Sorry, I couldn't understand that.",
+      };
+    }
+
+    console.log("✅ Groq Response:", parsed);
+    return parsed;
 
   } catch (error) {
-    console.log("Gemini API error:", error.response?.data?.error?.message || error.message)
+    console.log(
+      "❌ Groq API error:",
+      error.response?.data?.error?.message || error.message
+    );
+
     return {
       type: "general",
       userInput: command,
-      response: "Sorry, I couldn't process that. Please try again."
-    }
+      response: "Sorry, I couldn't process that. Please try again.",
+    };
   }
-}
+};
 
-export default geminiResponse
+export default geminiResponse;
