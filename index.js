@@ -34,7 +34,7 @@ const corsOptions = {
 app.use(cors(corsOptions))
 
 // ✅ FIX: Preflight must use SAME config (important for cookies)
-app.options('*', cors(corsOptions))
+app.options('/*', cors(corsOptions))
 
 // ✅ Middlewares
 app.use(express.json())
