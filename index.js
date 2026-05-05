@@ -8,17 +8,15 @@ import cookieParser from 'cookie-parser'
 
 const app = express()
 
-// ✅ Allowed origins (add your deployed frontend here)
 const allowedOrigins = [
   'http://localhost:5173',
   'http://localhost:5174',
   'https://ai-virtual-assistant-ou1m.onrender.com'
 ]
 
-// ✅ Proper CORS setup
+// ✅ CORS config
 app.use(cors({
   origin: function (origin, callback) {
-    // allow requests with no origin (like Postman, mobile apps)
     if (!origin) return callback(null, true)
 
     if (allowedOrigins.includes(origin)) {
@@ -32,13 +30,12 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization']
 }))
 
-// ✅ Handle preflight explicitly (important for Render)
-app.options('*', cors())
+// ✅ FIXED for Express 5
+app.options(/.*/, cors())
 
 app.use(express.json())
 app.use(cookieParser())
 
-// ✅ Routes
 app.use('/api/auth', authRouter)
 app.use('/api/user', userRouter)
 
