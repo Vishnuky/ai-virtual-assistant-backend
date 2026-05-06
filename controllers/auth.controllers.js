@@ -2,33 +2,27 @@ import genToken from "../config/token.js"
 import User from "../models/user.model.js"
 import bcrypt from "bcryptjs"
 
-// SIGN UP
 export const signUp = async (req, res) => {
   try {
     const { name, email, password } = req.body
 
-    // Check if email exists
     const existEmail = await User.findOne({ email })
     if (existEmail) {
       return res.status(400).json({ message: "Email already exists!" })
     }
 
-    // Validate password
     if (!password || password.length < 6) {
       return res.status(400).json({ message: "Password must be at least 6 characters!" })
     }
 
-    // Hash password
     const hashedPassword = await bcrypt.hash(password, 10)
 
-    // Create user
     const user = await User.create({
       name,
       email,
       password: hashedPassword
     })
 
-    // Generate token (IMPORTANT: use _id key)
     const token = genToken(user._id)
 
     return res.status(201).json({
@@ -46,24 +40,20 @@ export const signUp = async (req, res) => {
   }
 }
 
-// LOGIN
 export const login = async (req, res) => {
   try {
     const { email, password } = req.body
 
-    // Check user
     const user = await User.findOne({ email })
     if (!user) {
       return res.status(400).json({ message: "Email does not exist!" })
     }
 
-    // Compare password
     const isMatch = await bcrypt.compare(password, user.password)
     if (!isMatch) {
       return res.status(400).json({ message: "Incorrect password" })
     }
 
-    // Generate token
     const token = genToken(user._id)
 
     return res.status(200).json({
@@ -81,8 +71,7 @@ export const login = async (req, res) => {
   }
 }
 
-// LOGOUT (stateless)
-export const logout = async (req, res) => {
+export const logOut = async (req, res) => {
   try {
     return res.status(200).json({ message: "Logged out successfully" })
   } catch (error) {
