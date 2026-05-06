@@ -20,19 +20,16 @@ export const updateAssistant = async (req, res) => {
   try {
     const { assistantName, imageUrl } = req.body
     let assistantImage
-
     if (req.file) {
       assistantImage = await uploadOnCloudinary(req.file.path)
     } else {
       assistantImage = imageUrl
     }
-
     const user = await User.findByIdAndUpdate(
       req.userId,
       { assistantName, assistantImage },
       { new: true }
     ).select('-password')
-
     return res.status(200).json(user)
   } catch (error) {
     return res.status(400).json({ message: 'updateAssistantError user error' })
@@ -43,11 +40,9 @@ export const askToAssistant = async (req, res) => {
   try {
     const { command } = req.body
     const user = await User.findById(req.userId)
-
     console.log('Original command:', command)
     console.log('Assistant name:', user.assistantName)
 
-    // ✅ Only strip assistant name if it's meaningful (more than 2 chars)
     const cleanCommand =
       user.assistantName && user.assistantName.length > 2
         ? command.replace(new RegExp(user.assistantName, 'gi'), '').trim()
@@ -58,11 +53,7 @@ export const askToAssistant = async (req, res) => {
     user.history.push(command)
     await user.save()
 
-    const result = await geminiResponse(
-      cleanCommand,
-      user.assistantName,
-      user.name
-    )
+    const result = await geminiResponse(cleanCommand, user.assistantName, user.name)
 
     if (!result) {
       return res.status(400).json({ response: "sorry, i can't understand" })
@@ -110,9 +101,7 @@ export const askToAssistant = async (req, res) => {
           response: result.response,
         })
       default:
-        return res
-          .status(400)
-          .json({ response: "I didn't understand that command." })
+        return res.status(400).json({ response: "I didn't understand that command." })
     }
   } catch (error) {
     console.log('askToAssistant error:', error.message)
